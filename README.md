@@ -239,6 +239,3 @@ To ensure BAKWAS remains functional even when your local machine is switched off
 | **STUN/TURN** | WebRTC Symmetric NAT Relay | `TURN_URL`, `TURN_USERNAME`, `TURN_CREDENTIAL` | Google STUN fallback |
 
 ---
-
-## 📄 License
-This project is proprietary and built for enterprise deployment under the **BAKWAS** trademark. All design assets and brand logos are original creations.
