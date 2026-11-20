@@ -13,8 +13,17 @@ export const generateSecureOTP = () => {
 export const sendSMS = async (formattedPhone, otp) => {
   const message = `Your BAKWAS verification code is ${otp}. Valid for 5 minutes. Do not share this OTP with anyone.`;
 
+  const isTwilioActive =
+    ENV.SMS_PROVIDER === 'twilio' &&
+    ENV.TWILIO_ACCOUNT_SID &&
+    !ENV.TWILIO_ACCOUNT_SID.includes('XXXX') &&
+    ENV.TWILIO_AUTH_TOKEN &&
+    !ENV.TWILIO_AUTH_TOKEN.includes('your_') &&
+    ENV.TWILIO_PHONE_NUMBER &&
+    !ENV.TWILIO_PHONE_NUMBER.includes('+1234567890');
+
   // Twilio integration
-  if (ENV.SMS_PROVIDER === 'twilio' && ENV.TWILIO_ACCOUNT_SID && ENV.TWILIO_AUTH_TOKEN && ENV.TWILIO_PHONE_NUMBER) {
+  if (isTwilioActive) {
     try {
       const url = `https://api.twilio.com/2010-04-01/Accounts/${ENV.TWILIO_ACCOUNT_SID}/Messages.json`;
       const auth = Buffer.from(`${ENV.TWILIO_ACCOUNT_SID}:${ENV.TWILIO_AUTH_TOKEN}`).toString('base64');
@@ -40,12 +49,20 @@ export const sendSMS = async (formattedPhone, otp) => {
       return { success: true, provider: 'twilio', messageId: data.sid };
     } catch (err) {
       logger.error('Twilio SMS error:', err.message);
-      throw new ApiError(500, `SMS Delivery Failed via Twilio: ${err.message}`);
+      if (ENV.NODE_ENV === 'production') {
+        throw new ApiError(500, `SMS Delivery Failed via Twilio: ${err.message}`);
+      }
+      logger.warn('Falling back to local development OTP dispatch.');
     }
   }
 
+  const isMsg91Active =
+    ENV.SMS_PROVIDER === 'msg91' &&
+    ENV.MSG91_AUTH_KEY &&
+    !ENV.MSG91_AUTH_KEY.includes('your_');
+
   // MSG91 integration
-  if (ENV.SMS_PROVIDER === 'msg91' && ENV.MSG91_AUTH_KEY) {
+  if (isMsg91Active) {
     try {
       const url = `https://control.msg91.com/api/v5/otp?template_id=${ENV.MSG91_TEMPLATE_ID}&mobile=${formattedPhone.replace('+', '')}&authkey=${ENV.MSG91_AUTH_KEY}&otp=${otp}`;
       const response = await fetch(url, { method: 'POST' });
@@ -57,13 +74,15 @@ export const sendSMS = async (formattedPhone, otp) => {
       return { success: true, provider: 'msg91' };
     } catch (err) {
       logger.error('MSG91 SMS error:', err.message);
-      throw new ApiError(500, `SMS Delivery Failed via MSG91: ${err.message}`);
+      if (ENV.NODE_ENV === 'production') {
+        throw new ApiError(500, `SMS Delivery Failed via MSG91: ${err.message}`);
+      }
     }
   }
 
   // Development / Test mode logging
-  logger.info(`[SMS DISPATCH - DEV/TEST MODE] To: ${formattedPhone} | Code: ${otp} | Notice: Set SMS_PROVIDER=twilio or msg91 in production`);
-  return { success: true, provider: 'dev-mode', devOtp: ENV.NODE_ENV !== 'production' ? otp : undefined };
+  logger.info(`[SMS DISPATCH - DEV/TEST MODE] To: ${formattedPhone} | Code: ${otp} | Notice: Set SMS_PROVIDER=twilio or msg91 with valid credentials in production`);
+  return { success: true, provider: 'dev-mode', devOtp: otp };
 };
 
 export const createAndSendOTP = async (formattedPhone, purpose = 'login', ip = '') => {

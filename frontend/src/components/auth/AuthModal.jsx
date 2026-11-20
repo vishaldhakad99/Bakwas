@@ -64,7 +64,14 @@ export const AuthModal = () => {
       setStep('otp');
       setResendCooldown(45);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to dispatch verification code');
+      const serverMsg = err.response?.data?.message;
+      if (serverMsg) {
+        setError(serverMsg);
+      } else if (err.code === 'ERR_NETWORK' || !err.response) {
+        setError('Cannot connect to backend server. Make sure the backend is running on port 5000.');
+      } else {
+        setError('Failed to dispatch verification code. Please check your number.');
+      }
     } finally {
       setIsLoading(false);
     }

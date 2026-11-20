@@ -9,11 +9,17 @@ export const connectDB = async (customUri = null) => {
     return mongoose.connection;
   }
 
-  const uri = customUri || ENV.MONGODB_URI;
+  let uri = customUri || ENV.MONGODB_URI;
+
+  // Auto-detect template placeholders and fallback to local MongoDB
+  if (uri && (uri.includes('<username>') || uri.includes('<password>') || uri.includes('cluster0.xxxxx'))) {
+    logger.warn('MONGODB_URI contains unconfigured template placeholders. Falling back to local MongoDB (mongodb://127.0.0.1:27017/bakwas).');
+    uri = 'mongodb://127.0.0.1:27017/bakwas';
+  }
 
   try {
     const conn = await mongoose.connect(uri, {
-      serverSelectionTimeoutMS: 8000,
+      serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
       maxPoolSize: 50,
       minPoolSize: 5,
