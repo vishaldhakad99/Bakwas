@@ -14,7 +14,9 @@ export const ENV = {
   JWT_REFRESH_EXPIRY: process.env.JWT_REFRESH_EXPIRY || '30d',
 
   // SMS / OTP Provider configuration
-  SMS_PROVIDER: process.env.SMS_PROVIDER || 'mock', // 'twilio' | 'msg91' | 'mock'
+  SMS_PROVIDER: process.env.SMS_PROVIDER || 'auto', // 'fast2sms' | 'twilio' | 'msg91' | 'twofactor' | 'mock' | 'auto'
+  FAST2SMS_API_KEY: process.env.FAST2SMS_API_KEY || '',
+  TWO_FACTOR_API_KEY: process.env.TWO_FACTOR_API_KEY || '',
   TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID || '',
   TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN || '',
   TWILIO_PHONE_NUMBER: process.env.TWILIO_PHONE_NUMBER || '',

@@ -7,7 +7,9 @@ import {
   Pin,
   X,
   Volume2,
-  Video
+  Video,
+  UserPlus,
+  Phone
 } from 'lucide-react';
 import { format, isToday, isYesterday } from 'date-fns';
 import { Avatar } from '../common/Avatar';
@@ -24,7 +26,14 @@ const formatChatTime = (dateStr) => {
   return format(date, 'dd/MM/yy');
 };
 
-export const Sidebar = ({ onOpenNewChat, onOpenNewGroup, onOpenProfile, onOpenSettings }) => {
+export const Sidebar = ({
+  onOpenNewChat,
+  onOpenNewGroup,
+  onOpenProfile,
+  onOpenSettings,
+  onOpenContacts,
+  onOpenSaveContact
+}) => {
   const [activeTab, setActiveTab] = useState('all'); // 'all' | 'unread' | 'groups'
   const { user } = useAuthStore();
   const {
@@ -103,27 +112,41 @@ export const Sidebar = ({ onOpenNewChat, onOpenNewGroup, onOpenProfile, onOpenSe
         </div>
 
         {/* Action icons */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5">
+          <button
+            onClick={onOpenSaveContact}
+            className="p-2 rounded-full text-slate-400 hover:text-bakwas-400 hover:bg-slate-800/70 transition-colors"
+            title="Save Number / Add Contact"
+          >
+            <UserPlus className="w-4 h-4" />
+          </button>
+          <button
+            onClick={onOpenContacts}
+            className="p-2 rounded-full text-slate-400 hover:text-cyan-400 hover:bg-slate-800/70 transition-colors"
+            title="Saved Contacts & Address Book"
+          >
+            <Phone className="w-4 h-4" />
+          </button>
           <button
             onClick={onOpenNewChat}
-            className="p-2.5 rounded-full text-slate-400 hover:text-white hover:bg-slate-800/70 transition-colors"
+            className="p-2 rounded-full text-slate-400 hover:text-white hover:bg-slate-800/70 transition-colors"
             title="Start New Chat"
           >
-            <MessageSquarePlus className="w-5 h-5" />
+            <MessageSquarePlus className="w-4 h-4" />
           </button>
           <button
             onClick={onOpenNewGroup}
-            className="p-2.5 rounded-full text-slate-400 hover:text-white hover:bg-slate-800/70 transition-colors"
+            className="p-2 rounded-full text-slate-400 hover:text-white hover:bg-slate-800/70 transition-colors"
             title="Create Group"
           >
-            <Users className="w-5 h-5" />
+            <Users className="w-4 h-4" />
           </button>
           <button
             onClick={onOpenSettings}
-            className="p-2.5 rounded-full text-slate-400 hover:text-white hover:bg-slate-800/70 transition-colors"
+            className="p-2 rounded-full text-slate-400 hover:text-white hover:bg-slate-800/70 transition-colors"
             title="Settings & Privacy"
           >
-            <SettingsIcon className="w-5 h-5" />
+            <SettingsIcon className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -150,7 +173,7 @@ export const Sidebar = ({ onOpenNewChat, onOpenNewGroup, onOpenProfile, onOpenSe
         </div>
 
         {/* Filter Pills */}
-        <div className="flex items-center gap-2 mt-2.5">
+        <div className="flex items-center gap-1.5 mt-2.5 overflow-x-auto no-scrollbar">
           {['all', 'unread', 'groups'].map((tab) => (
             <button
               key={tab}
@@ -164,6 +187,13 @@ export const Sidebar = ({ onOpenNewChat, onOpenNewGroup, onOpenProfile, onOpenSe
               {tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>
           ))}
+          <button
+            onClick={onOpenContacts}
+            className="px-3 py-1 rounded-full text-xs font-medium bg-slate-900 text-slate-400 hover:text-bakwas-400 border border-transparent hover:border-slate-700 flex items-center gap-1 transition-colors"
+          >
+            <Phone className="w-3 h-3" />
+            <span>Contacts</span>
+          </button>
         </div>
       </div>
 

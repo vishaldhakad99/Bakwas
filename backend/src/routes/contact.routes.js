@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   getContacts,
   addContact,
+  deleteContact,
   blockContact,
   unblockContact,
   getBlockedContacts,
@@ -15,6 +16,7 @@ router.use(verifyJWT);
 
 router.get('/', getContacts);
 router.post('/', addContact);
+router.delete('/:contactId', deleteContact);
 router.post('/block', blockContact);
 router.post('/unblock', unblockContact);
 router.get('/blocked', getBlockedContacts);

@@ -10,6 +10,8 @@ import { NewGroupModal } from './components/modals/NewGroupModal';
 import { ProfileModal } from './components/modals/ProfileModal';
 import { SettingsModal } from './components/modals/SettingsModal';
 import { ForwardModal } from './components/modals/ForwardModal';
+import { SaveContactModal } from './components/modals/SaveContactModal';
+import { ContactsModal } from './components/modals/ContactsModal';
 
 import { useAuthStore } from './store/useAuthStore';
 import { useChatStore } from './store/useChatStore';
@@ -38,6 +40,8 @@ export function App() {
   const [isNewGroupOpen, setIsNewGroupOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isSaveContactOpen, setIsSaveContactOpen] = useState(false);
+  const [isContactsOpen, setIsContactsOpen] = useState(false);
   const [forwardMessage, setForwardMessage] = useState(null);
 
   // Initialize theme on mount
@@ -138,6 +142,8 @@ export function App() {
           onOpenNewGroup={() => setIsNewGroupOpen(true)}
           onOpenProfile={() => setIsProfileOpen(true)}
           onOpenSettings={() => setIsSettingsOpen(true)}
+          onOpenContacts={() => setIsContactsOpen(true)}
+          onOpenSaveContact={() => setIsSaveContactOpen(true)}
         />
       </div>
 
@@ -153,7 +159,10 @@ export function App() {
             onForwardMessage={(m) => setForwardMessage(m)}
           />
         ) : (
-          <EmptyChat onOpenNewChat={() => setIsNewChatOpen(true)} />
+          <EmptyChat
+            onOpenNewChat={() => setIsNewChatOpen(true)}
+            onOpenSaveContact={() => setIsSaveContactOpen(true)}
+          />
         )}
       </div>
 
@@ -168,6 +177,27 @@ export function App() {
       <NewChatModal
         isOpen={isNewChatOpen}
         onClose={() => setIsNewChatOpen(false)}
+        onOpenSaveContact={() => {
+          setIsNewChatOpen(false);
+          setIsSaveContactOpen(true);
+        }}
+      />
+
+      <SaveContactModal
+        isOpen={isSaveContactOpen}
+        onClose={() => setIsSaveContactOpen(false)}
+        onContactSaved={() => {
+          fetchConversations();
+        }}
+      />
+
+      <ContactsModal
+        isOpen={isContactsOpen}
+        onClose={() => setIsContactsOpen(false)}
+        onOpenSaveContact={() => {
+          setIsContactsOpen(false);
+          setIsSaveContactOpen(true);
+        }}
       />
 
       <NewGroupModal

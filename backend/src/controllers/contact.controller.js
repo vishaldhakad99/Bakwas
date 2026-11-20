@@ -16,17 +16,38 @@ export const getContacts = async (req, res, next) => {
     const blockedList = await BlockedUser.find({ blockerId: userId });
     const blockedIds = new Set(blockedList.map((b) => b.blockedUserId.toString()));
 
-    const formatted = contacts
-      .filter((c) => c.contactUserId && !c.contactUserId.isDeleted)
-      .map((c) => ({
-        _id: c._id,
-        contactUser: c.contactUserId,
-        customName: c.customName || c.contactUserId.fullName,
-        isBlocked: blockedIds.has(c.contactUserId._id.toString()),
-        createdAt: c.createdAt
-      }));
+    // For any unlinked contacts, check if the user has recently registered
+    const unlinked = contacts.filter((c) => !c.contactUserId);
+    if (unlinked.length > 0) {
+      const phones = unlinked.map((c) => c.phoneNumber);
+      const registeredUsers = await User.find({ formattedPhone: { $in: phones }, isDeleted: false });
+      const phoneToUser = new Map(registeredUsers.map((u) => [u.formattedPhone, u]));
 
-    return res.status(200).json(new ApiResponse(200, formatted));
+      for (const c of unlinked) {
+        if (phoneToUser.has(c.phoneNumber)) {
+          const registered = phoneToUser.get(c.phoneNumber);
+          c.contactUserId = registered;
+          await Contact.updateOne({ _id: c._id }, { contactUserId: registered._id });
+        }
+      }
+    }
+
+    const formatted = contacts.map((c) => {
+      const isRegistered = !!(c.contactUserId && !c.contactUserId.isDeleted);
+      const contactUserObj = isRegistered ? c.contactUserId : null;
+      return {
+        _id: c._id,
+        phoneNumber: c.phoneNumber,
+        customName: c.customName,
+        notes: c.notes || '',
+        isRegistered,
+        contactUser: contactUserObj,
+        isBlocked: contactUserObj ? blockedIds.has(contactUserObj._id.toString()) : false,
+        createdAt: c.createdAt
+      };
+    });
+
+    return res.status(200).json(new ApiResponse(200, formatted, 'Contacts retrieved successfully'));
   } catch (error) {
     next(error);
   }
@@ -34,40 +55,80 @@ export const getContacts = async (req, res, next) => {
 
 export const addContact = async (req, res, next) => {
   try {
-    const { contactPhone, contactUserId, customName } = req.body;
+    const { contactPhone, phoneNumber, countryCode = '+91', customName, notes } = req.body;
     const userId = req.user._id;
 
-    let targetUser = null;
-
-    if (contactUserId) {
-      targetUser = await User.findById(contactUserId);
-    } else if (contactPhone) {
-      targetUser = await User.findOne({ formattedPhone: contactPhone.trim(), isDeleted: false });
+    // Clean and normalize phone number
+    const rawNumber = phoneNumber || contactPhone;
+    if (!rawNumber || typeof rawNumber !== 'string') {
+      throw new ApiError(400, 'Mobile phone number is required');
     }
 
-    if (!targetUser) {
-      throw new ApiError(404, 'User not found with provided phone or ID');
+    if (!customName || !customName.trim()) {
+      throw new ApiError(400, 'Contact name is required');
     }
 
-    if (targetUser._id.toString() === userId.toString()) {
-      throw new ApiError(400, 'Cannot add yourself as a contact');
-    }
+    let cleanDigits = rawNumber.trim().replace(/\D/g, '').replace(/^0+/, '');
+    let formattedPhone = '';
 
-    let contact = await Contact.findOne({ userId, contactUserId: targetUser._id });
-    if (contact) {
-      if (customName) contact.customName = customName.trim();
-      await contact.save();
+    if (rawNumber.trim().startsWith('+')) {
+      formattedPhone = `+${cleanDigits}`;
     } else {
-      contact = await Contact.create({
-        userId,
-        contactUserId: targetUser._id,
-        customName: customName ? customName.trim() : targetUser.fullName
-      });
+      const code = countryCode.trim().startsWith('+') ? countryCode.trim() : `+${countryCode.trim()}`;
+      formattedPhone = `${code}${cleanDigits}`;
     }
 
-    const populated = await Contact.findById(contact._id).populate('contactUserId', 'fullName username formattedPhone avatar about isOnline lastSeen');
+    // Check if the target phone belongs to the user themselves
+    const currentUser = await User.findById(userId);
+    if (currentUser && currentUser.formattedPhone === formattedPhone) {
+      throw new ApiError(400, 'You cannot save yourself as a contact');
+    }
 
-    return res.status(201).json(new ApiResponse(201, populated, 'Contact saved successfully'));
+    // Check if registered user exists for this phone
+    const targetUser = await User.findOne({ formattedPhone, isDeleted: false });
+
+    // Upsert contact record
+    const contact = await Contact.findOneAndUpdate(
+      { userId, phoneNumber: formattedPhone },
+      {
+        customName: customName.trim(),
+        phoneNumber: formattedPhone,
+        contactUserId: targetUser ? targetUser._id : null,
+        notes: notes ? notes.trim() : '',
+        isSaved: true
+      },
+      { new: true, upsert: true, runValidators: true }
+    ).populate('contactUserId', 'fullName username formattedPhone avatar about isOnline lastSeen');
+
+    logger.info(`Contact saved by user ${userId}: ${formattedPhone} (${customName.trim()})`);
+
+    const result = {
+      _id: contact._id,
+      phoneNumber: contact.phoneNumber,
+      customName: contact.customName,
+      notes: contact.notes,
+      isRegistered: !!targetUser,
+      contactUser: targetUser || null,
+      createdAt: contact.createdAt
+    };
+
+    return res.status(201).json(new ApiResponse(201, result, 'Contact saved successfully'));
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteContact = async (req, res, next) => {
+  try {
+    const { contactId } = req.params;
+    const userId = req.user._id;
+
+    const deleted = await Contact.findOneAndDelete({ _id: contactId, userId });
+    if (!deleted) {
+      throw new ApiError(404, 'Contact not found');
+    }
+
+    return res.status(200).json(new ApiResponse(200, null, 'Contact deleted successfully'));
   } catch (error) {
     next(error);
   }

@@ -14,11 +14,9 @@ export const sendPushToUser = async (userId, payload) => {
       data: payload.data || {}
     });
 
-    // 2. Dispatch Web Push if configured
     if (!isPushConfigured) {
       return;
     }
-
     const subscriptions = await PushSubscription.find({ userId });
     if (!subscriptions || subscriptions.length === 0) return;
 

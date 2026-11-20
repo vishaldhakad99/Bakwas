@@ -4,7 +4,7 @@ import { Avatar } from '../common/Avatar';
 import { api } from '../../services/api';
 import { useChatStore } from '../../store/useChatStore';
 
-export const NewChatModal = ({ isOpen, onClose }) => {
+export const NewChatModal = ({ isOpen, onClose, onOpenSaveContact }) => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -56,7 +56,7 @@ export const NewChatModal = ({ isOpen, onClose }) => {
         </div>
 
         {/* Search input */}
-        <div className="my-4 relative">
+        <div className="my-3 relative">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3 pointer-events-none" />
           <input
             type="text"
@@ -67,6 +67,17 @@ export const NewChatModal = ({ isOpen, onClose }) => {
             className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-bakwas-500"
           />
         </div>
+
+        {/* Quick action: Save new number */}
+        {onOpenSaveContact && (
+          <button
+            onClick={onOpenSaveContact}
+            className="mb-3 w-full py-2.5 px-3 rounded-xl bg-bakwas-500/10 hover:bg-bakwas-500/20 border border-bakwas-500/30 text-bakwas-400 text-xs font-semibold flex items-center justify-center gap-2 transition-colors"
+          >
+            <UserPlus className="w-4 h-4" />
+            <span>Save a New Phone Number</span>
+          </button>
+        )}
 
         {/* Results List */}
         <div className="flex-1 overflow-y-auto divide-y divide-slate-800/40">

@@ -41,36 +41,42 @@ export const AuthModal = () => {
   const handleRequestOtp = async (e) => {
     if (e) e.preventDefault();
     setError('');
-    const cleanNumber = mobileNumber.replace(/\D/g, '');
+    setDevOtpNotice('');
+    const cleanNumber = mobileNumber.replace(/\D/g, '').replace(/^0+/, '');
 
-    if (cleanNumber.length < 7 || cleanNumber.length > 15) {
-      setError('Please enter a valid mobile number (7 to 15 digits)');
+    if (cleanNumber.length < 6 || cleanNumber.length > 15) {
+      setError('Please enter a valid mobile number (6 to 15 digits)');
       return;
     }
 
     setIsLoading(true);
     try {
       const res = await api.post('/auth/request-otp', {
-        countryCode,
+        countryCode: countryCode.trim(),
         mobileNumber: cleanNumber,
         purpose: 'login'
       });
 
-      if (res.data?.data?.devOtp) {
-        setDevOtpNotice(`Auto-Fill OTP for quick verification: ${res.data.data.devOtp}`);
+      if (res.data?.data?.isRealSms) {
+        setDevOtpNotice(`Real SMS dispatched to ${countryCode} ${cleanNumber}. Check your mobile messages!`);
+      } else if (res.data?.data?.devOtp) {
+        setDevOtpNotice(`Verification Code: ${res.data.data.devOtp} (Auto-filled)`);
         setOtp(res.data.data.devOtp);
       }
 
       setStep('otp');
-      setResendCooldown(45);
+      setResendCooldown(25);
     } catch (err) {
       const serverMsg = err.response?.data?.message;
+      const errorList = err.response?.data?.errors;
+      const formattedErrors = Array.isArray(errorList) && errorList.length > 0 ? errorList.join(', ') : null;
+
       if (serverMsg) {
-        setError(serverMsg);
+        setError(formattedErrors ? `${serverMsg}: ${formattedErrors}` : serverMsg);
       } else if (err.code === 'ERR_NETWORK' || !err.response) {
         setError('Cannot connect to backend server. Make sure the backend is running on port 5000.');
       } else {
-        setError('Failed to dispatch verification code. Please check your number.');
+        setError(err.message || 'Failed to dispatch verification code. Please check your number.');
       }
     } finally {
       setIsLoading(false);
@@ -86,13 +92,13 @@ export const AuthModal = () => {
 
     setIsLoading(true);
     setError('');
-    const cleanNumber = mobileNumber.replace(/\D/g, '');
+    const cleanNumber = mobileNumber.replace(/\D/g, '').replace(/^0+/, '');
 
     try {
       const res = await api.post('/auth/verify-otp', {
-        countryCode,
+        countryCode: countryCode.trim(),
         mobileNumber: cleanNumber,
-        otp,
+        otp: otp.trim(),
         deviceId,
         fullName: fullName || undefined,
         username: username || undefined,
@@ -106,12 +112,18 @@ export const AuthModal = () => {
       const { user, accessToken, refreshToken } = res.data.data;
       setAuthData(user, accessToken, refreshToken);
     } catch (err) {
-      const msg = err.response?.data?.message || 'Verification failed';
-      // If user requires profile setup
-      if (msg.toLowerCase().includes('name is required')) {
+      const serverMsg = err.response?.data?.message;
+      const errorList = err.response?.data?.errors;
+      const formattedErrors = Array.isArray(errorList) && errorList.length > 0 ? errorList.join(', ') : null;
+
+      if (serverMsg && serverMsg.toLowerCase().includes('name is required')) {
         setStep('profile');
+      } else if (serverMsg) {
+        setError(formattedErrors ? `${serverMsg}: ${formattedErrors}` : serverMsg);
+      } else if (err.code === 'ERR_NETWORK' || !err.response) {
+        setError('Cannot connect to backend server. Make sure the backend is running on port 5000.');
       } else {
-        setError(msg);
+        setError(err.message || 'Verification failed. Please check the OTP.');
       }
     } finally {
       setIsLoading(false);

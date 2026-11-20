@@ -1,7 +1,7 @@
 import React from 'react';
-import { Lock, ShieldCheck, PhoneCall, Video, Zap, MessageSquare } from 'lucide-react';
+import { Lock, ShieldCheck, PhoneCall, Video, Zap, MessageSquare, UserPlus } from 'lucide-react';
 
-export const EmptyChat = ({ onOpenNewChat }) => {
+export const EmptyChat = ({ onOpenNewChat, onOpenSaveContact }) => {
   return (
     <div className="hidden md:flex flex-1 h-full flex-col items-center justify-center p-8 bg-bakwas-dark text-center select-none relative overflow-hidden chat-wallpaper-dark">
       {/* Decorative gradient lights */}
@@ -40,13 +40,25 @@ export const EmptyChat = ({ onOpenNewChat }) => {
           </div>
         </div>
 
-        <button
-          onClick={onOpenNewChat}
-          className="px-6 py-3 rounded-xl bg-bakwas-500 hover:bg-bakwas-600 text-slate-950 font-semibold text-sm transition-all flex items-center gap-2 shadow-lg shadow-bakwas-500/25 active:scale-95"
-        >
-          <MessageSquare className="w-4 h-4" />
-          <span>Start a New Chat</span>
-        </button>
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <button
+            onClick={onOpenNewChat}
+            className="px-5 py-3 rounded-xl bg-bakwas-500 hover:bg-bakwas-600 text-slate-950 font-bold text-sm transition-all flex items-center gap-2 shadow-lg shadow-bakwas-500/25 active:scale-95"
+          >
+            <MessageSquare className="w-4 h-4" />
+            <span>Start a New Chat</span>
+          </button>
+
+          {onOpenSaveContact && (
+            <button
+              onClick={onOpenSaveContact}
+              className="px-5 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-sm transition-all flex items-center gap-2 border border-slate-700 active:scale-95"
+            >
+              <UserPlus className="w-4 h-4 text-bakwas-400" />
+              <span>Save a Number</span>
+            </button>
+          )}
+        </div>
 
         <div className="flex items-center gap-2 text-xs text-slate-500 mt-12">
           <Lock className="w-3.5 h-3.5 text-slate-400" />

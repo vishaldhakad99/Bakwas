@@ -21,9 +21,15 @@ app.use(helmet({
 // CORS Configuration
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, curl) or matching client URLs
-    const allowed = [ENV.CLIENT_URL, 'http://localhost:5173', 'http://127.0.0.1:5173'];
-    if (!origin || allowed.includes(origin) || ENV.NODE_ENV !== 'production') {
+    // Allow requests with no origin, dev environments, local network IP, or production client URL
+    const allowed = [ENV.CLIENT_URL, 'http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:5174', 'http://127.0.0.1:5174'];
+    if (
+      !origin ||
+      allowed.includes(origin) ||
+      ENV.NODE_ENV !== 'production' ||
+      origin.includes('localhost:') ||
+      origin.includes('127.0.0.1:')
+    ) {
       callback(null, true);
     } else {
       callback(new Error('Blocked by CORS policy'));

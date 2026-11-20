@@ -1,4 +1,5 @@
 import { User } from '../models/User.js';
+import { Contact } from '../models/Contact.js';
 import { OTPVerification } from '../models/OTPVerification.js';
 import { createAndSendOTP, verifyOTP } from '../services/otp.service.js';
 import { createSessionAndTokens, rotateRefreshToken, revokeSession, revokeAllSessions } from '../services/token.service.js';
@@ -9,7 +10,9 @@ import { logger } from '../utils/logger.js';
 export const requestOTP = async (req, res, next) => {
   try {
     const { countryCode, mobileNumber, purpose } = req.body;
-    const formattedPhone = `${countryCode.trim()}${mobileNumber.trim()}`;
+    const cleanMobile = mobileNumber.trim().replace(/\D/g, '').replace(/^0+/, '');
+    const cleanCountry = countryCode.trim().startsWith('+') ? countryCode.trim() : `+${countryCode.trim()}`;
+    const formattedPhone = `${cleanCountry}${cleanMobile}`;
     const clientIp = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
 
     // Check if purpose is register and user already exists
@@ -20,13 +23,18 @@ export const requestOTP = async (req, res, next) => {
 
     const otpResult = await createAndSendOTP(formattedPhone, purpose, clientIp);
 
+    const message = otpResult.isRealSms
+      ? `Real cellular verification code dispatched to ${formattedPhone}`
+      : 'Verification code generated successfully';
+
     return res.status(200).json(
       new ApiResponse(200, {
         formattedPhone,
         expiresAt: otpResult.expiresAt,
         provider: otpResult.provider,
+        isRealSms: otpResult.isRealSms,
         devOtp: otpResult.devOtp
-      }, 'Verification OTP dispatched successfully')
+      }, message)
     );
   } catch (error) {
     next(error);
@@ -36,7 +44,9 @@ export const requestOTP = async (req, res, next) => {
 export const verifyAndAuthenticate = async (req, res, next) => {
   try {
     const { countryCode, mobileNumber, otp, deviceId, deviceInfo, fullName, username, purpose } = req.body;
-    const formattedPhone = `${countryCode.trim()}${mobileNumber.trim()}`;
+    const cleanMobile = mobileNumber.trim().replace(/\D/g, '').replace(/^0+/, '');
+    const cleanCountry = countryCode.trim().startsWith('+') ? countryCode.trim() : `+${countryCode.trim()}`;
+    const formattedPhone = `${cleanCountry}${cleanMobile}`;
 
     // Verify OTP code
     await verifyOTP(formattedPhone, otp, purpose);
@@ -46,14 +56,20 @@ export const verifyAndAuthenticate = async (req, res, next) => {
     if (!user) {
       // New user registration
       user = await User.create({
-        countryCode: countryCode.trim(),
-        mobileNumber: mobileNumber.trim(),
+        countryCode: cleanCountry,
+        mobileNumber: cleanMobile,
         formattedPhone,
-        fullName: (fullName && fullName.trim()) || `User ${mobileNumber.slice(-4)}`,
+        fullName: (fullName && fullName.trim()) || `User ${cleanMobile.slice(-4)}`,
         username: username ? username.trim().toLowerCase() : undefined,
         isVerified: true
       });
       logger.info(`New user registered on BAKWAS: ${formattedPhone} (_id: ${user._id})`);
+
+      // Auto-link any contacts who previously saved this phone number
+      await Contact.updateMany(
+        { phoneNumber: formattedPhone, contactUserId: null },
+        { contactUserId: user._id }
+      );
     } else {
       if (user.isDeleted) {
         // Reactivate account
@@ -64,6 +80,12 @@ export const verifyAndAuthenticate = async (req, res, next) => {
       if (fullName) user.fullName = fullName.trim();
       if (username) user.username = username.trim().toLowerCase();
       await user.save();
+
+      // Ensure all contacts pointing to this phone have the user._id set
+      await Contact.updateMany(
+        { phoneNumber: formattedPhone, contactUserId: null },
+        { contactUserId: user._id }
+      );
     }
 
     // Issue tokens & track device session

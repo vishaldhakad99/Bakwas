@@ -4,7 +4,7 @@ export const requestOtpSchema = z.object({
   body: z.object({
     countryCode: z.string().min(1, 'Country code is required').regex(/^\+[1-9]\d{0,3}$/, 'Invalid country code format, e.g. +91, +1'),
     mobileNumber: z.string().min(6, 'Mobile number must be at least 6 digits').max(15, 'Mobile number too long').regex(/^\d+$/, 'Mobile number must contain digits only'),
-    purpose: z.enum(['register', 'login', 'change_phone']).default('login')
+    purpose: z.enum(['register', 'login', 'change_phone']).default('login').optional()
   })
 });
 
@@ -21,7 +21,7 @@ export const verifyOtpSchema = z.object({
     }).optional(),
     fullName: z.string().max(50).optional(),
     username: z.string().min(3).max(30).regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain alphanumeric and underscores').optional(),
-    purpose: z.enum(['register', 'login', 'change_phone']).default('login')
+    purpose: z.enum(['register', 'login', 'change_phone']).default('login').optional()
   })
 });
 
