@@ -168,11 +168,7 @@ export const revokeSessionById = async (req, res, next) => {
 export const searchUsers = async (req, res, next) => {
   try {
     const { query } = req.query;
-    if (!query || query.trim().length < 2) {
-      return res.status(200).json(new ApiResponse(200, []));
-    }
-
-    const cleanQuery = query.trim();
+    const cleanQuery = query ? query.trim() : '';
 
     // Find users blocked by or who blocked the current user
     const blockedRecords = await BlockedUser.find({
@@ -184,17 +180,23 @@ export const searchUsers = async (req, res, next) => {
     );
     excludedUserIds.push(req.user._id);
 
-    // Search by phone, username, or fullName
-    const users = await User.find({
+    // Filter criteria: match query or return recent registered users if empty
+    const filter = {
       _id: { $nin: excludedUserIds },
-      isDeleted: false,
-      $or: [
+      isDeleted: false
+    };
+
+    if (cleanQuery.length > 0) {
+      filter.$or = [
         { formattedPhone: { $regex: cleanQuery, $options: 'i' } },
         { username: { $regex: cleanQuery, $options: 'i' } },
         { fullName: { $regex: cleanQuery, $options: 'i' } }
-      ]
-    })
+      ];
+    }
+
+    const users = await User.find(filter)
       .select('fullName username formattedPhone avatar about isOnline lastSeen privacySettings')
+      .sort({ updatedAt: -1, createdAt: -1 })
       .limit(20);
 
     // Filter privacy restrictions

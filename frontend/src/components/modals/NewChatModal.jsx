@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { X, Search, UserPlus, MessageSquare } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Search, UserPlus, MessageSquare, Users } from 'lucide-react';
 import { Avatar } from '../common/Avatar';
 import { api } from '../../services/api';
 import { useChatStore } from '../../store/useChatStore';
@@ -11,24 +11,30 @@ export const NewChatModal = ({ isOpen, onClose, onOpenSaveContact }) => {
 
   const { setActiveConversation, fetchConversations } = useChatStore();
 
-  if (!isOpen) return null;
-
-  const handleSearch = async (val) => {
-    setQuery(val);
-    if (val.trim().length < 2) {
-      setResults([]);
-      return;
-    }
-
+  const loadUsers = async (searchVal = '') => {
     setIsSearching(true);
     try {
-      const res = await api.get(`/users/search?query=${encodeURIComponent(val.trim())}`);
+      const res = await api.get(`/users/search?query=${encodeURIComponent(searchVal.trim())}`);
       setResults(res.data.data || []);
     } catch (err) {
-      console.error(err);
+      console.error('Failed to search users:', err);
     } finally {
       setIsSearching(false);
     }
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      setQuery('');
+      loadUsers('');
+    }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  const handleSearch = (val) => {
+    setQuery(val);
+    loadUsers(val);
   };
 
   const handleStartChat = async (user) => {
@@ -81,17 +87,20 @@ export const NewChatModal = ({ isOpen, onClose, onOpenSaveContact }) => {
 
         {/* Results List */}
         <div className="flex-1 overflow-y-auto divide-y divide-slate-800/40">
+          {!query && results.length > 0 && (
+            <div className="px-2 py-1.5 text-[11px] font-semibold text-slate-400 flex items-center gap-1.5 uppercase tracking-wider">
+              <Users className="w-3.5 h-3.5 text-bakwas-400" />
+              <span>Registered BAKWAS Members ({results.length})</span>
+            </div>
+          )}
+
           {isSearching && (
             <div className="py-8 text-center text-xs text-slate-500">Searching directory...</div>
           )}
 
-          {!isSearching && results.length === 0 && query.trim().length >= 2 && (
-            <div className="py-8 text-center text-xs text-slate-500">No users found for "{query}"</div>
-          )}
-
-          {!isSearching && query.trim().length < 2 && (
+          {!isSearching && results.length === 0 && (
             <div className="py-8 text-center text-xs text-slate-500">
-              Type at least 2 characters or enter a registered phone number.
+              {query ? `No users found for "${query}"` : 'No other users registered yet. Save a number or share the link with a friend!'}
             </div>
           )}
 

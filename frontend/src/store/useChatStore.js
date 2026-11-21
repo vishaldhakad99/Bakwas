@@ -113,6 +113,13 @@ export const useChatStore = create((set, get) => ({
       sound.playReceived();
     }
 
+    // Check if conversation exists in local list; if not, re-fetch conversations from backend
+    const convExists = conversations.some((c) => c._id === message.conversationId);
+    if (!convExists) {
+      get().fetchConversations();
+      return;
+    }
+
     // Update conversation lastMessage & move to top
     set({
       conversations: conversations

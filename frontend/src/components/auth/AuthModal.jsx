@@ -190,6 +190,26 @@ export const AuthModal = () => {
                   <Phone className="w-4 h-4 text-slate-500 absolute right-3.5 top-3.5 pointer-events-none" />
                 </div>
               </div>
+              <div className="flex items-center justify-between text-[11px] text-slate-400 mt-2 px-1">
+                <span>Quick Test:</span>
+                <div className="flex gap-2 font-mono">
+                  <button
+                    type="button"
+                    onClick={() => { setCountryCode('+91'); setMobileNumber('9876543210'); }}
+                    className="text-bakwas-400 hover:underline"
+                  >
+                    User 1
+                  </button>
+                  <span>•</span>
+                  <button
+                    type="button"
+                    onClick={() => { setCountryCode('+91'); setMobileNumber('9800011122'); }}
+                    className="text-cyan-400 hover:underline"
+                  >
+                    User 2
+                  </button>
+                </div>
+              </div>
             </div>
 
             <button
@@ -226,6 +246,23 @@ export const AuthModal = () => {
               >
                 Change
               </button>
+            </div>
+
+            <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-center">
+              <p className="text-xs text-emerald-300 font-semibold mb-1">
+                {devOtpNotice || 'Instant Verification Code:'}
+              </p>
+              <div className="flex items-center justify-center gap-2 mt-1">
+                <span className="text-sm font-mono text-slate-400">Code:</span>
+                <span className="text-lg font-mono font-bold text-white tracking-widest">{otp || '123456'}</span>
+                <button
+                  type="button"
+                  onClick={() => setOtp(otp || '123456')}
+                  className="ml-2 px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 text-xs font-semibold transition-colors"
+                >
+                  Fill Code
+                </button>
+              </div>
             </div>
 
             <OtpInput value={otp} onChange={setOtp} length={6} disabled={isLoading} />

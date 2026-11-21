@@ -200,14 +200,20 @@ export const Sidebar = ({
       {/* Chat List Container */}
       <div className="flex-1 overflow-y-auto divide-y divide-slate-800/30">
         {filteredConversations.length === 0 ? (
-          <div className="py-16 px-6 text-center text-slate-500">
-            <p className="text-sm">No conversations found</p>
+          <div className="py-12 px-6 text-center text-slate-400 flex flex-col items-center">
+            <div className="w-14 h-14 rounded-2xl bg-bakwas-500/10 border border-bakwas-500/20 flex items-center justify-center text-bakwas-400 mb-4">
+              <MessageSquarePlus className="w-7 h-7" />
+            </div>
+            <h3 className="text-sm font-semibold text-white mb-1">No chats yet</h3>
+            <p className="text-xs text-slate-400 max-w-[220px] mb-5 leading-relaxed">
+              Start a new conversation with registered members or save a phone number.
+            </p>
             <button
               onClick={onOpenNewChat}
-              className="mt-3 text-xs text-bakwas-400 hover:underline inline-flex items-center gap-1 font-medium"
+              className="py-2.5 px-4 rounded-xl bg-gradient-to-r from-bakwas-500 to-teal-500 text-slate-950 font-bold text-xs shadow-lg shadow-bakwas-500/20 hover:from-bakwas-600 hover:to-teal-600 transition-all flex items-center gap-2 active:scale-95"
             >
-              <MessageSquarePlus className="w-3.5 h-3.5" />
-              Start a new conversation
+              <MessageSquarePlus className="w-4 h-4" />
+              <span>Start New Chat</span>
             </button>
           </div>
         ) : (

@@ -102,18 +102,22 @@ export const registerChatHandlers = (io, socket) => {
           populate: { path: 'sender', select: 'fullName username' }
         });
 
-      // Broadcast to all devices in conversation room
+      // Broadcast to active conversation room
       io.to(`conv_${conversationId}`).emit('message:receive', {
         message: populatedMessage,
         tempId
       });
 
-      // Broadcast new message alert to recipient user rooms
-      for (const pId of otherParticipants) {
+      // Broadcast directly to all participants' personal user rooms (for cross-device & real-time sync)
+      for (const pId of conversation.participants) {
+        io.to(`user_${pId.toString()}`).emit('message:receive', {
+          message: populatedMessage,
+          tempId
+        });
         io.to(`user_${pId.toString()}`).emit('conversation:updated', {
           conversationId,
           lastMessage: populatedMessage,
-          unreadCountIncrement: 1
+          unreadCountIncrement: pId.toString() === userId.toString() ? 0 : 1
         });
       }
 

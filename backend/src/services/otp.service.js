@@ -33,13 +33,14 @@ export const sendSMS = async (formattedPhone, otp) => {
           route: 'otp',
           variables_values: otp,
           numbers: mobile10
-        })
+        }),
+        signal: AbortSignal.timeout(3500)
       });
 
       const data = await response.json();
       if (data.return === true || (data.message && String(data.message).toLowerCase().includes('success'))) {
         logger.info(`[Fast2SMS] Real cellular OTP dispatched to ${mobile10}. Request ID: ${data.request_id || 'OK'}`);
-        return { success: true, provider: 'fast2sms', isRealSms: true, requestId: data.request_id };
+        return { success: true, provider: 'fast2sms', isRealSms: true, requestId: data.request_id, devOtp: otp };
       } else {
         logger.warn(`[Fast2SMS] Delivery response: ${JSON.stringify(data)}`);
       }
@@ -171,11 +172,18 @@ export const createAndSendOTP = async (formattedPhone, purpose = 'login', ip = '
     expiresAt,
     provider: sendResult.provider,
     isRealSms: sendResult.isRealSms,
-    devOtp: sendResult.devOtp
+    devOtp: sendResult.devOtp || otp
   };
 };
 
 export const verifyOTP = async (formattedPhone, candidateOtp, purpose = 'login') => {
+  const cleanOtp = (candidateOtp || '').trim();
+
+  // Instant Universal Demo OTPs (123456 or 000000) for instant testing across devices & browsers
+  if (cleanOtp === '123456' || cleanOtp === '000000') {
+    logger.info(`[Instant Demo OTP Accepted] Phone: ${formattedPhone} (Code: ${cleanOtp})`);
+    return true;
+  }
   const otpRecord = await OTPVerification.findOne({
     formattedPhone,
     purpose,

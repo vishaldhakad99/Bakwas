@@ -90,6 +90,10 @@ export function App() {
       addMessage(message, true);
     });
 
+    socket.on('conversation:updated', () => {
+      fetchConversations();
+    });
+
     socket.on('message:status_updated', ({ messageId, status }) => {
       updateMessageStatus(messageId, status);
     });
@@ -118,6 +122,7 @@ export function App() {
 
     return () => {
       socket.off('message:receive');
+      socket.off('conversation:updated');
       socket.off('message:status_updated');
       socket.off('message:read_receipt');
       socket.off('message:reaction_updated');
