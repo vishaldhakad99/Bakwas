@@ -9,7 +9,11 @@ export const initSocket = (token, deviceId) => {
     socket.disconnect();
   }
 
-  const socketUrl = import.meta.env.VITE_SOCKET_URL || window.location.origin;
+  const isBrowser = typeof window !== 'undefined';
+  const isLocalhost = isBrowser && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+  const defaultSocketUrl = isBrowser && !isLocalhost ? 'https://bakwas-fpfn.onrender.com' : window.location.origin;
+
+  const socketUrl = import.meta.env.VITE_SOCKET_URL || defaultSocketUrl;
 
   socket = io(socketUrl, {
     auth: {

@@ -131,8 +131,8 @@ export const AuthModal = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-      <div className="w-full max-w-md bg-bakwas-panel border border-slate-800 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
+      <div className="w-full max-w-md bg-bakwas-panel border border-slate-800 rounded-3xl p-5 sm:p-8 shadow-2xl relative overflow-hidden my-auto">
         {/* Subtle background glow */}
         <div className="absolute -top-24 -right-24 w-48 h-48 bg-bakwas-500/20 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />

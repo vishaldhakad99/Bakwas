@@ -12,6 +12,7 @@ import { SettingsModal } from './components/modals/SettingsModal';
 import { ForwardModal } from './components/modals/ForwardModal';
 import { SaveContactModal } from './components/modals/SaveContactModal';
 import { ContactsModal } from './components/modals/ContactsModal';
+import { InstallPwaPrompt } from './components/common/InstallPwaPrompt';
 
 import { useAuthStore } from './store/useAuthStore';
 import { useChatStore } from './store/useChatStore';
@@ -127,7 +128,7 @@ export function App() {
   }, [isAuthenticated, accessToken]);
 
   return (
-    <div className="w-screen h-screen flex overflow-hidden bg-bakwas-dark font-sans select-none antialiased">
+    <div className="w-screen h-[100dvh] flex overflow-hidden bg-bakwas-dark font-sans select-none antialiased">
       {/* Mobile & Desktop View Layout */}
       {/* On desktop: show sidebar + chat panel side-by-side.
           On mobile: show sidebar if no activeConversation, or chat panel if activeConversation selected */}
@@ -221,6 +222,9 @@ export function App() {
           onClose={() => setForwardMessage(null)}
         />
       )}
+
+      {/* Floating PWA Install Prompt */}
+      <InstallPwaPrompt />
     </div>
   );
 }

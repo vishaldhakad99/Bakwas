@@ -21,11 +21,22 @@ app.use(helmet({
 // CORS Configuration
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin, dev environments, local network IP, or production client URL
-    const allowed = [ENV.CLIENT_URL, 'http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:5174', 'http://127.0.0.1:5174'];
+    // Allow requests with no origin, dev environments, local network IP, Vercel deployments, or production client URL
+    const allowed = [
+      ENV.CLIENT_URL,
+      'http://localhost:5173',
+      'http://127.0.0.1:5173',
+      'http://localhost:5174',
+      'http://127.0.0.1:5174',
+      'https://bakwas-ashen.vercel.app'
+    ];
+
+    const isVercelDomain = origin && (origin.endsWith('.vercel.app') || origin.includes('vercel.app'));
+
     if (
       !origin ||
       allowed.includes(origin) ||
+      isVercelDomain ||
       ENV.NODE_ENV !== 'production' ||
       origin.includes('localhost:') ||
       origin.includes('127.0.0.1:')
