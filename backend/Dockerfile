@@ -11,6 +11,9 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=5000
 
+# Create application directory and uploads folder with correct permissions
+RUN mkdir -p /app/uploads && chown -R node:node /app
+
 # Non-root user for cybersecurity hardening
 USER node
 

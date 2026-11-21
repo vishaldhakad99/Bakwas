@@ -1,3 +1,4 @@
+import fs from 'fs';
 import { cloudinary, isCloudinaryConfigured } from '../config/storage.js';
 import { getIceServers } from '../config/webrtc.js';
 import { ApiError } from '../utils/apiError.js';
@@ -27,6 +28,11 @@ export const uploadMedia = async (req, res, next) => {
 
       url = uploadResult.secure_url;
       publicId = uploadResult.public_id;
+
+      // Clean up temporary local file after successful cloud upload
+      if (fs.existsSync(file.path)) {
+        fs.unlink(file.path, () => {});
+      }
     } else {
       url = `/uploads/${file.filename}`;
       publicId = file.filename;

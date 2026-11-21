@@ -1,11 +1,26 @@
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
 import { ApiError } from '../utils/apiError.js';
+import { logger } from '../utils/logger.js';
 
-const uploadDir = path.resolve('uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+let uploadDir = path.resolve('uploads');
+try {
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
+} catch (err) {
+  // If permission denied in container or serverless, fallback to system temp directory
+  uploadDir = path.join(os.tmpdir(), 'bakwas-uploads');
+  try {
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+  } catch (fallbackErr) {
+    uploadDir = os.tmpdir();
+  }
+  logger.info(`Upload directory set to fallback writable directory: ${uploadDir}`);
 }
 
 const storage = multer.diskStorage({
