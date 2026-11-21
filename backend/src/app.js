@@ -5,6 +5,7 @@ import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import morgan from 'morgan';
 import path from 'path';
+import fs from 'fs';
 import { ENV } from './config/env.js';
 import routes from './routes/index.js';
 import { errorHandler } from './middlewares/error.middleware.js';
@@ -73,7 +74,23 @@ app.use('/uploads', express.static(path.resolve('uploads')));
 // Mount API routes
 app.use('/api', routes);
 
-// 404 handler
+// Serve production frontend assets if available
+const publicDir = path.resolve('public');
+if (fs.existsSync(publicDir)) {
+  app.use(express.static(publicDir));
+  app.get('*', (req, res, next) => {
+    if (req.originalUrl.startsWith('/api') || req.originalUrl.startsWith('/uploads')) {
+      return next();
+    }
+    const indexPath = path.join(publicDir, 'index.html');
+    if (fs.existsSync(indexPath)) {
+      return res.sendFile(indexPath);
+    }
+    next();
+  });
+}
+
+// 404 handler for unmatched API routes
 app.use((req, res, next) => {
   next(new ApiError(404, `Cannot find ${req.method} ${req.originalUrl}`));
 });

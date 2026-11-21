@@ -1,0 +1,19 @@
+{
+  "short_name": "BAKWAS",
+  "name": "BAKWAS - Real-Time Communication Platform",
+  "description": "Enterprise real-time messaging, voice, and video calling platform",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192 512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0b141a",
+  "theme_color": "#00a884",
+  "display": "standalone",
+  "orientation": "portrait",
+  "categories": ["social", "communication"]
+}

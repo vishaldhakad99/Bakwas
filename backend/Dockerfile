@@ -20,6 +20,7 @@ USER node
 COPY --chown=node:node --from=builder /app/node_modules ./node_modules
 COPY --chown=node:node package*.json ./
 COPY --chown=node:node src/ ./src/
+COPY --chown=node:node public/ ./public/
 
 EXPOSE 5000
 

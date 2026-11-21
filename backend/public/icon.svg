@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="bakwasGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00a884" />
+      <stop offset="100%" stop-color="#06b6d4" />
+    </linearGradient>
+    <linearGradient id="bubbleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#111b21" />
+      <stop offset="100%" stop-color="#0b141a" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="16" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+  <!-- Background Badge -->
+  <rect width="512" height="512" rx="128" fill="url(#bubbleGrad)" />
+  <rect width="504" height="504" x="4" y="4" rx="124" stroke="url(#bakwasGrad)" stroke-width="8" stroke-opacity="0.3" />
+
+  <!-- BAKWAS Signature B-Wave Icon -->
+  <g transform="translate(106, 106)" filter="url(#glow)">
+    <!-- Main Chat Shape -->
+    <path d="M50 30 C 50 13.43 63.43 0 80 0 L 220 0 C 264.18 0 300 35.82 300 80 C 300 124.18 264.18 160 220 160 L 80 160 C 63.43 160 50 146.57 50 130 Z" fill="url(#bakwasGrad)" />
+    <path d="M50 140 C 50 123.43 63.43 110 80 110 L 230 110 C 274.18 110 310 145.82 310 190 C 310 234.18 274.18 270 230 270 L 60 270 C 43.43 270 20 285 0 300 L 20 250 C 7.5 235 0 215 0 190 C 0 155 22 140 50 140 Z" fill="url(#bakwasGrad)" opacity="0.95" />
+    
+    <!-- Cutouts creating the stylized 'B' soundwaves -->
+    <circle cx="130" cy="80" r="32" fill="#0b141a" />
+    <circle cx="140" cy="190" r="38" fill="#0b141a" />
+
+    <!-- Dynamic Lightning / Wave Accent -->
+    <path d="M180 70 L 210 70 L 195 90 L 225 90" stroke="#00a884" stroke-width="6" stroke-linecap="round" />
+    <circle cx="195" cy="190" r="8" fill="#00a884" />
+  </g>
+</svg>
