@@ -48,13 +48,15 @@ export const Avatar = ({
     xl: 'w-5 h-5 ring-4'
   };
 
-  const hasImage = Boolean(src && src.trim());
+  const backendHost = import.meta.env.VITE_SOCKET_URL || '';
+  const resolvedSrc = src && src.startsWith('/uploads') ? `${backendHost}${src}` : src;
+  const hasImage = Boolean(resolvedSrc && resolvedSrc.trim());
 
   return (
     <div className={`relative flex-shrink-0 ${className}`}>
       {hasImage ? (
         <img
-          src={src}
+          src={resolvedSrc}
           alt={name}
           className={`${sizeClasses[size] || sizeClasses.md} rounded-full object-cover shadow-sm bg-bakwas-panel`}
           onError={(e) => {
