@@ -1,40 +1,45 @@
-const CACHE_NAME = 'bakwas-cache-v1';
-const STATIC_ASSETS = [
-  '/',
-  '/index.html',
-  '/icon.svg',
-  '/manifest.json'
-];
+const CACHE_NAME = 'bakwas-cache-v3';
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
-  );
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(
-        keys.map((key) => {
-          if (key !== CACHE_NAME) return caches.delete(key);
-        })
-      )
-    )
+      Promise.all(keys.map((key) => caches.delete(key)))
+    ).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
-  // Let API requests and socket pass directly through
-  if (event.request.url.includes('/api/') || event.request.url.includes('/socket.io/')) {
+  const url = event.request.url;
+
+  // Bypass service worker for API, sockets, uploads, and non-GET requests
+  if (
+    event.request.method !== 'GET' ||
+    url.includes('/api/') ||
+    url.includes('/socket.io/') ||
+    url.includes('/uploads/')
+  ) {
     return;
   }
+
+  // Network-First strategy: Always fetch fresh HTML & JS from server
+  // Only fall back to cache if user is completely offline without internet
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      return cachedResponse || fetch(event.request);
-    })
+    fetch(event.request)
+      .then((networkResponse) => {
+        // Cache successful responses for offline use
+        if (networkResponse && networkResponse.status === 200) {
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
+        }
+        return networkResponse;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
 

@@ -19,33 +19,10 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' }
 }));
 
-// CORS Configuration
+// CORS Configuration - Permissive for all client platforms, PWAs & Vercel/Render deployments
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin, dev environments, local network IP, Vercel deployments, or production client URL
-    const allowed = [
-      ENV.CLIENT_URL,
-      'http://localhost:5173',
-      'http://127.0.0.1:5173',
-      'http://localhost:5174',
-      'http://127.0.0.1:5174',
-      'https://bakwas-ashen.vercel.app'
-    ];
-
-    const isVercelDomain = origin && (origin.endsWith('.vercel.app') || origin.includes('vercel.app'));
-
-    if (
-      !origin ||
-      allowed.includes(origin) ||
-      isVercelDomain ||
-      ENV.NODE_ENV !== 'production' ||
-      origin.includes('localhost:') ||
-      origin.includes('127.0.0.1:')
-    ) {
-      callback(null, true);
-    } else {
-      callback(new Error('Blocked by CORS policy'));
-    }
+    callback(null, true);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],

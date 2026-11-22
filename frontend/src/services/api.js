@@ -46,6 +46,26 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    if (!originalRequest) return Promise.reject(error);
+
+    // Automatic Fallback Retry: If request failed with 504, 502, 405, or ERR_NETWORK on relative path,
+    // seamlessly retry directly against live Render cloud backend!
+    const isNetworkOrGatewayErr =
+      error.code === 'ERR_NETWORK' ||
+      error.response?.status === 504 ||
+      error.response?.status === 502 ||
+      error.response?.status === 405;
+
+    if (
+      !originalRequest._hasFallbackRetried &&
+      isNetworkOrGatewayErr &&
+      (!originalRequest.baseURL || originalRequest.baseURL === '/api' || !originalRequest.baseURL.startsWith('https://bakwas-fpfn'))
+    ) {
+      originalRequest._hasFallbackRetried = true;
+      originalRequest.baseURL = 'https://bakwas-fpfn.onrender.com/api';
+      console.warn('[BAKWAS API] Network failover: retrying via direct cloud backend...');
+      return api(originalRequest);
+    }
 
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (originalRequest.url.includes('/auth/refresh-token') || originalRequest.url.includes('/auth/verify-otp')) {
