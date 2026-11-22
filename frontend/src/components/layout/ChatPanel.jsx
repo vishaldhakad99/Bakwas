@@ -20,15 +20,25 @@ export const ChatPanel = ({ onBack, onOpenContactInfo, onForwardMessage }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
   const messagesEndRef = useRef(null);
+  const isInitialMount = useRef(true);
   const { activeConversation, messages, isLoadingMessages } = useChatStore();
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const scrollToBottom = (smooth = true) => {
+    messagesEndRef.current?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto' });
   };
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages.length]);
+    if (isInitialMount.current) {
+      scrollToBottom(false);
+      isInitialMount.current = false;
+    } else {
+      scrollToBottom(true);
+    }
+  }, [messages.length, activeConversation?._id]);
+
+  useEffect(() => {
+    isInitialMount.current = true;
+  }, [activeConversation?._id]);
 
   if (!activeConversation) return null;
 

@@ -17,6 +17,7 @@ import { sound } from '../../services/sound';
 export const ActiveCallModal = () => {
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
+  const remoteAudioRef = useRef(null);
 
   const {
     callState,
@@ -45,6 +46,14 @@ export const ActiveCallModal = () => {
   useEffect(() => {
     if (remoteVideoRef.current && remoteStream) {
       remoteVideoRef.current.srcObject = remoteStream;
+    }
+  }, [remoteStream, callState]);
+
+  // Attach remote stream to dedicated audio tag (essential for voice calls)
+  useEffect(() => {
+    if (remoteAudioRef.current && remoteStream) {
+      remoteAudioRef.current.srcObject = remoteStream;
+      remoteAudioRef.current.play().catch((e) => console.log('Audio autoplay info:', e.message));
     }
   }, [remoteStream, callState]);
 
@@ -148,6 +157,14 @@ export const ActiveCallModal = () => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-lg">
+      {/* Dedicated audio element to play remote audio stream across desktop and mobile */}
+      <audio
+        ref={remoteAudioRef}
+        autoPlay
+        playsInline
+        className="absolute -top-[9999px] -left-[9999px] w-1 h-1 opacity-0 pointer-events-none"
+      />
+
       <div className="w-full max-w-4xl h-[85vh] bg-slate-950 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl flex flex-col relative">
         {/* Main Display Area */}
         <div className="flex-1 relative flex items-center justify-center bg-black overflow-hidden">

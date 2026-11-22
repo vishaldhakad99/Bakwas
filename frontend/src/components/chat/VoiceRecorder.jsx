@@ -15,7 +15,20 @@ export const VoiceRecorder = ({ onSendAudio, onCancel }) => {
     const startRecording = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        const mediaRecorder = new MediaRecorder(stream);
+        let options;
+        if (typeof MediaRecorder.isTypeSupported === 'function') {
+          if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+            options = { mimeType: 'audio/webm;codecs=opus' };
+          } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+            options = { mimeType: 'audio/webm' };
+          } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+            options = { mimeType: 'audio/mp4' };
+          } else if (MediaRecorder.isTypeSupported('audio/ogg')) {
+            options = { mimeType: 'audio/ogg' };
+          }
+        }
+
+        const mediaRecorder = options ? new MediaRecorder(stream, options) : new MediaRecorder(stream);
         mediaRecorderRef.current = mediaRecorder;
         audioChunksRef.current = [];
 
@@ -48,8 +61,10 @@ export const VoiceRecorder = ({ onSendAudio, onCancel }) => {
     if (!mediaRecorderRef.current) return;
 
     mediaRecorderRef.current.onstop = async () => {
-      const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-      const file = new File([audioBlob], `voice-note-${Date.now()}.webm`, { type: 'audio/webm' });
+      const mimeType = mediaRecorderRef.current?.mimeType || 'audio/webm';
+      const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+      const ext = mimeType.includes('mp4') ? 'm4a' : mimeType.includes('ogg') ? 'ogg' : 'webm';
+      const file = new File([audioBlob], `voice-note-${Date.now()}.${ext}`, { type: mimeType });
 
       const formData = new FormData();
       formData.append('file', file);

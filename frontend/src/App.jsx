@@ -86,8 +86,8 @@ export function App() {
     }
 
     // Real-time Socket Event Listeners
-    socket.on('message:receive', ({ message }) => {
-      addMessage(message, true);
+    socket.on('message:receive', ({ message, tempId }) => {
+      addMessage(message, true, tempId);
     });
 
     socket.on('conversation:updated', () => {

@@ -7,7 +7,8 @@ import {
   X,
   Image as ImageIcon,
   FileText,
-  Video as VideoIcon
+  Video as VideoIcon,
+  RotateCw
 } from 'lucide-react';
 import { VoiceRecorder } from './VoiceRecorder';
 import { useChatStore } from '../../store/useChatStore';
@@ -90,6 +91,8 @@ export const MessageInput = () => {
       socket.emit('message:send', messagePayload, (response) => {
         if (response?.error) {
           console.error('Failed to send message:', response.error);
+        } else if (response?.message) {
+          addMessage(response.message, false, tempId);
         }
       });
       socket.emit('typing:stop', { conversationId: activeConversation._id });
@@ -120,13 +123,28 @@ export const MessageInput = () => {
 
       const mediaData = uploadRes.data.data;
       const socket = getSocket();
+      const tempId = `temp_${Date.now()}`;
       const messagePayload = {
         conversationId: activeConversation._id,
         content: file.name,
         messageType: type,
         media: mediaData,
-        replyToId: replyingTo?._id
+        replyToId: replyingTo?._id,
+        tempId
       };
+
+      // Optimistic local add so the user sees their media immediately!
+      addMessage({
+        _id: tempId,
+        conversationId: activeConversation._id,
+        sender: user,
+        content: file.name,
+        messageType: type,
+        media: mediaData,
+        replyTo: replyingTo,
+        status: 'sent',
+        createdAt: new Date().toISOString()
+      });
 
       if (socket) {
         socket.emit('message:send', messagePayload);
@@ -135,7 +153,8 @@ export const MessageInput = () => {
       setReplyingTo(null);
     } catch (err) {
       console.error('File upload error:', err);
-      alert('Failed to upload attachment');
+      const msg = err.response?.data?.message || err.message || 'Failed to upload attachment';
+      alert(`Upload error: ${msg}`);
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -146,13 +165,28 @@ export const MessageInput = () => {
     if (!activeConversation) return;
 
     const socket = getSocket();
+    const tempId = `temp_${Date.now()}`;
     const messagePayload = {
       conversationId: activeConversation._id,
       content: 'Voice note',
       messageType: 'audio',
       media: mediaData,
-      replyToId: replyingTo?._id
+      replyToId: replyingTo?._id,
+      tempId
     };
+
+    // Optimistic local add for audio voice notes!
+    addMessage({
+      _id: tempId,
+      conversationId: activeConversation._id,
+      sender: user,
+      content: 'Voice note',
+      messageType: 'audio',
+      media: mediaData,
+      replyTo: replyingTo,
+      status: 'sent',
+      createdAt: new Date().toISOString()
+    });
 
     if (socket) {
       socket.emit('message:send', messagePayload);
@@ -183,6 +217,14 @@ export const MessageInput = () => {
           >
             <X className="w-4 h-4" />
           </button>
+        </div>
+      )}
+
+      {/* Uploading progress indicator */}
+      {isUploading && (
+        <div className="mb-2 p-2 px-3 rounded-xl bg-bakwas-500/10 border border-bakwas-500/30 text-xs text-bakwas-400 flex items-center gap-2 animate-pulse">
+          <RotateCw className="w-3.5 h-3.5 animate-spin" />
+          <span>Uploading media file...</span>
         </div>
       )}
 

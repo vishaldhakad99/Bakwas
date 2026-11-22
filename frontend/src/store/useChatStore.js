@@ -90,16 +90,29 @@ export const useChatStore = create((set, get) => ({
     }
   },
 
-  addMessage: (message, isFromSocket = false) => {
+  addMessage: (message, isFromSocket = false, tempId = null) => {
     const { activeConversation, conversations, messages } = get();
+    const currentUser = JSON.parse(localStorage.getItem('bakwas_user') || 'null');
+    const isSelf = message.sender?._id === currentUser?._id || message.sender === currentUser?._id;
 
     if (activeConversation && activeConversation._id === message.conversationId) {
+      const matchTempId = tempId || message.tempId;
+      if (matchTempId) {
+        const tempIdx = messages.findIndex((m) => m._id === matchTempId);
+        if (tempIdx !== -1) {
+          const updated = [...messages];
+          updated[tempIdx] = message;
+          set({ messages: updated });
+          return;
+        }
+      }
+
       // Avoid duplicate temp messages
       const exists = messages.some((m) => m._id === message._id);
       if (!exists) {
         set({ messages: [...messages, message] });
       }
-      if (isFromSocket) {
+      if (isFromSocket && !isSelf) {
         sound.playReceived();
         const socket = getSocket();
         if (socket) {
@@ -109,7 +122,7 @@ export const useChatStore = create((set, get) => ({
           });
         }
       }
-    } else if (isFromSocket) {
+    } else if (isFromSocket && !isSelf) {
       sound.playReceived();
     }
 

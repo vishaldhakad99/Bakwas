@@ -22,10 +22,11 @@ export const getConversations = async (req, res, next) => {
         path: 'lastMessage',
         populate: { path: 'sender', select: 'fullName username' }
       })
-      .sort({ updatedAt: -1 });
+      .sort({ updatedAt: -1 })
+      .lean();
 
     const formatted = conversations.map((conv) => {
-      const cObj = conv.toObject();
+      const cObj = { ...conv };
       cObj.isPinned = (conv.pinnedBy || []).some((id) => id.toString() === userId.toString());
       cObj.isArchived = (conv.archivedBy || []).some((id) => id.toString() === userId.toString());
 
@@ -148,7 +149,8 @@ export const getMessages = async (req, res, next) => {
         populate: { path: 'sender', select: 'fullName username' }
       })
       .sort({ createdAt: -1 })
-      .limit(parseInt(limit, 10));
+      .limit(parseInt(limit, 10))
+      .lean();
 
     // Reset unread count for current user
     await Conversation.updateOne(
@@ -158,7 +160,7 @@ export const getMessages = async (req, res, next) => {
 
     // Sanitize deleted for everyone messages
     const sanitizedMessages = messages.map((m) => {
-      const mObj = m.toObject();
+      const mObj = { ...m };
       if (m.deletedForEveryone) {
         mObj.content = 'This message was deleted';
         mObj.media = { url: '', fileName: '', fileSize: 0 };

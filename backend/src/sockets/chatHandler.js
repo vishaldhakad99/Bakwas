@@ -102,18 +102,18 @@ export const registerChatHandlers = (io, socket) => {
           populate: { path: 'sender', select: 'fullName username' }
         });
 
-      // Broadcast to active conversation room
-      io.to(`conv_${conversationId}`).emit('message:receive', {
+      // Broadcast to active conversation room and participant rooms without duplicate packets
+      const targetRooms = [
+        `conv_${conversationId}`,
+        ...conversation.participants.map((p) => `user_${p.toString()}`)
+      ];
+      io.to(targetRooms).emit('message:receive', {
         message: populatedMessage,
         tempId
       });
 
-      // Broadcast directly to all participants' personal user rooms (for cross-device & real-time sync)
+      // Update conversation list/badges for participants
       for (const pId of conversation.participants) {
-        io.to(`user_${pId.toString()}`).emit('message:receive', {
-          message: populatedMessage,
-          tempId
-        });
         io.to(`user_${pId.toString()}`).emit('conversation:updated', {
           conversationId,
           lastMessage: populatedMessage,

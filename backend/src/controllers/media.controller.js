@@ -11,31 +11,34 @@ export const uploadMedia = async (req, res, next) => {
     }
 
     const file = req.file;
-    let url = '';
-    let publicId = '';
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    let url = `${baseUrl}/uploads/${file.filename}`;
+    let publicId = file.filename;
 
     if (isCloudinaryConfigured) {
-      let resourceType = 'auto';
-      if (file.mimetype.startsWith('video/')) resourceType = 'video';
-      else if (file.mimetype.startsWith('audio/')) resourceType = 'video'; // Cloudinary treats audio as video
-      else if (file.mimetype.startsWith('image/')) resourceType = 'image';
-      else resourceType = 'raw';
+      try {
+        let resourceType = 'auto';
+        if (file.mimetype.startsWith('video/')) resourceType = 'video';
+        else if (file.mimetype.startsWith('audio/')) resourceType = 'video'; // Cloudinary treats audio as video
+        else if (file.mimetype.startsWith('image/')) resourceType = 'image';
+        else resourceType = 'raw';
 
-      const uploadResult = await cloudinary.uploader.upload(file.path, {
-        folder: 'bakwas/media',
-        resource_type: resourceType
-      });
+        const uploadResult = await cloudinary.uploader.upload(file.path, {
+          folder: 'bakwas/media',
+          resource_type: resourceType
+        });
 
-      url = uploadResult.secure_url;
-      publicId = uploadResult.public_id;
+        url = uploadResult.secure_url;
+        publicId = uploadResult.public_id;
 
-      // Clean up temporary local file after successful cloud upload
-      if (fs.existsSync(file.path)) {
-        fs.unlink(file.path, () => {});
+        // Clean up temporary local file after successful cloud upload
+        if (fs.existsSync(file.path)) {
+          fs.unlink(file.path, () => {});
+        }
+      } catch (cloudErr) {
+        url = `${baseUrl}/uploads/${file.filename}`;
+        publicId = file.filename;
       }
-    } else {
-      url = `/uploads/${file.filename}`;
-      publicId = file.filename;
     }
 
     return res.status(200).json(

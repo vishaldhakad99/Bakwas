@@ -1,4 +1,5 @@
 import React from 'react';
+import { getMediaUrl } from '../../services/api';
 
 const colorPalettes = [
   'from-emerald-600 to-teal-700',
@@ -48,8 +49,7 @@ export const Avatar = ({
     xl: 'w-5 h-5 ring-4'
   };
 
-  const backendHost = import.meta.env.VITE_SOCKET_URL || '';
-  const resolvedSrc = src && src.startsWith('/uploads') ? `${backendHost}${src}` : src;
+  const resolvedSrc = getMediaUrl(src);
   const hasImage = Boolean(resolvedSrc && resolvedSrc.trim());
 
   return (

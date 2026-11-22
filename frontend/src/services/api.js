@@ -7,6 +7,20 @@ const defaultApiUrl = isBrowser && !isLocalhost ? 'https://bakwas-fpfn.onrender.
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || defaultApiUrl;
 
+export const getMediaUrl = (url) => {
+  if (!url || typeof url !== 'string') return '';
+  if (
+    url.startsWith('http://') ||
+    url.startsWith('https://') ||
+    url.startsWith('blob:') ||
+    url.startsWith('data:')
+  ) {
+    return url;
+  }
+  const backendHost = isBrowser && !isLocalhost ? 'https://bakwas-fpfn.onrender.com' : '';
+  return `${backendHost}${url.startsWith('/') ? '' : '/'}${url}`;
+};
+
 export const api = axios.create({
   baseURL: API_BASE_URL,
   withCredentials: true,

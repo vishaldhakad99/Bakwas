@@ -55,19 +55,25 @@ export const updateAvatar = async (req, res, next) => {
     }
 
     const user = req.user;
-    let avatarUrl = '';
-    let publicId = '';
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    let avatarUrl = `${baseUrl}/uploads/${req.file.filename}`;
+    let publicId = req.file.filename;
 
     if (isCloudinaryConfigured) {
-      const uploadResult = await cloudinary.uploader.upload(req.file.path, {
-        folder: 'bakwas/avatars',
-        transformation: [{ width: 400, height: 400, crop: 'fill', gravity: 'face' }]
-      });
-      avatarUrl = uploadResult.secure_url;
-      publicId = uploadResult.public_id;
-    } else {
-      avatarUrl = `/uploads/${req.file.filename}`;
-      publicId = req.file.filename;
+      try {
+        const uploadResult = await cloudinary.uploader.upload(req.file.path, {
+          folder: 'bakwas/avatars',
+          transformation: [{ width: 400, height: 400, crop: 'fill', gravity: 'face' }]
+        });
+        avatarUrl = uploadResult.secure_url;
+        publicId = uploadResult.public_id;
+        if (fs.existsSync(req.file.path)) {
+          fs.unlink(req.file.path, () => {});
+        }
+      } catch (cloudErr) {
+        avatarUrl = `${baseUrl}/uploads/${req.file.filename}`;
+        publicId = req.file.filename;
+      }
     }
 
     user.avatar = {

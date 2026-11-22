@@ -6,6 +6,7 @@ class WebRTCManager {
     this.peerConnection = null;
     this.localStream = null;
     this.remoteStream = null;
+    this.pendingCandidates = [];
     this.iceServers = [
       { urls: 'stun:stun.l.google.com:19302' },
       { urls: 'stun:stun1.l.google.com:19302' }
@@ -34,14 +35,25 @@ class WebRTCManager {
       iceCandidatePoolSize: 10
     });
 
+    this.pendingCandidates = [];
+
     // Remote stream receiver
-    this.remoteStream = new MediaStream();
     this.peerConnection.ontrack = (event) => {
-      event.streams[0].getTracks().forEach((track) => {
-        this.remoteStream.addTrack(track);
-      });
-      if (this.onRemoteStreamCallback) {
-        this.onRemoteStreamCallback(this.remoteStream);
+      let stream = null;
+      if (event.streams && event.streams[0]) {
+        stream = event.streams[0];
+      } else if (event.track) {
+        if (!this.remoteStream) {
+          this.remoteStream = new MediaStream();
+        }
+        this.remoteStream.addTrack(event.track);
+        stream = this.remoteStream;
+      }
+      if (stream) {
+        this.remoteStream = stream;
+        if (this.onRemoteStreamCallback) {
+          this.onRemoteStreamCallback(stream);
+        }
       }
     };
 
@@ -115,11 +127,25 @@ class WebRTCManager {
     return offer;
   }
 
+  async processPendingIceCandidates() {
+    if (this.peerConnection && this.peerConnection.remoteDescription && this.pendingCandidates.length > 0) {
+      for (const cand of this.pendingCandidates) {
+        try {
+          await this.peerConnection.addIceCandidate(new RTCIceCandidate(cand));
+        } catch (e) {
+          console.warn('Pending candidate err:', e);
+        }
+      }
+      this.pendingCandidates = [];
+    }
+  }
+
   async handleOfferAndCreateAnswer(offer, callId, targetUserId) {
     if (!this.peerConnection) {
       await this.initializePeerConnection(callId, targetUserId);
     }
     await this.peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+    await this.processPendingIceCandidates();
     const answer = await this.peerConnection.createAnswer();
     await this.peerConnection.setLocalDescription(answer);
     return answer;
@@ -128,16 +154,20 @@ class WebRTCManager {
   async handleAnswer(answer) {
     if (this.peerConnection && !this.peerConnection.currentRemoteDescription) {
       await this.peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+      await this.processPendingIceCandidates();
     }
   }
 
   async addIceCandidate(candidate) {
-    if (this.peerConnection && candidate) {
+    if (!candidate) return;
+    if (this.peerConnection && this.peerConnection.remoteDescription) {
       try {
         await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
       } catch (err) {
         console.warn('Error adding ICE candidate:', err);
       }
+    } else {
+      this.pendingCandidates.push(candidate);
     }
   }
 

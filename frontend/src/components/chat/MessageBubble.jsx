@@ -19,7 +19,7 @@ import { StatusTicks } from '../common/StatusTicks';
 import { Avatar } from '../common/Avatar';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useChatStore } from '../../store/useChatStore';
-import { api } from '../../services/api';
+import { api, getMediaUrl } from '../../services/api';
 import { getSocket } from '../../services/socket';
 
 const POPULAR_EMOJIS = ['❤️', '👍', '😂', '😮', '😢', '🙏'];
@@ -146,9 +146,9 @@ export const MessageBubble = ({
         {message.messageType === 'image' && message.media?.url && (
           <div className="rounded-xl overflow-hidden mb-1.5 max-h-80 cursor-pointer">
             <img
-              src={message.media.url}
+              src={getMediaUrl(message.media.url)}
               alt={message.media.fileName || 'Photo'}
-              onClick={() => onOpenImage(message.media.url)}
+              onClick={() => onOpenImage(getMediaUrl(message.media.url))}
               className="w-full h-auto object-cover hover:opacity-95 transition-opacity"
             />
           </div>
@@ -158,7 +158,7 @@ export const MessageBubble = ({
         {message.messageType === 'video' && message.media?.url && (
           <div className="rounded-xl overflow-hidden mb-1.5 max-h-80">
             <video
-              src={message.media.url}
+              src={getMediaUrl(message.media.url)}
               controls
               className="w-full max-h-80 rounded-xl bg-black"
             />
@@ -170,7 +170,7 @@ export const MessageBubble = ({
           <div className="flex items-center gap-3 py-1.5 px-1 min-w-[220px]">
             <audio
               ref={audioRef}
-              src={message.media.url}
+              src={getMediaUrl(message.media.url)}
               onEnded={() => setIsPlayingAudio(false)}
             />
             <button
@@ -213,7 +213,7 @@ export const MessageBubble = ({
               </p>
             </div>
             <a
-              href={message.media.url}
+              href={getMediaUrl(message.media.url)}
               download={message.media.fileName}
               target="_blank"
               rel="noopener noreferrer"

@@ -62,7 +62,21 @@ const allowedMimeTypes = [
 ];
 
 const fileFilter = (req, file, cb) => {
-  if (allowedMimeTypes.includes(file.mimetype)) {
+  const mime = (file.mimetype || '').toLowerCase();
+  const isAllowed =
+    mime.startsWith('image/') ||
+    mime.startsWith('audio/') ||
+    mime.startsWith('video/') ||
+    mime.includes('pdf') ||
+    mime.includes('word') ||
+    mime.includes('document') ||
+    mime.includes('sheet') ||
+    mime.includes('excel') ||
+    mime.includes('zip') ||
+    mime.includes('text') ||
+    allowedMimeTypes.includes(mime);
+
+  if (isAllowed) {
     cb(null, true);
   } else {
     cb(new ApiError(400, `Unsupported file type: ${file.mimetype}. Permitted types: images, audio, video, documents (PDF, DOCX, ZIP, TXT).`), false);
