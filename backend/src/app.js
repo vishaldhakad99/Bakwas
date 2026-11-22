@@ -10,9 +10,13 @@ import { ENV } from './config/env.js';
 import routes from './routes/index.js';
 import { errorHandler } from './middlewares/error.middleware.js';
 import { generalLimiter } from './middlewares/rateLimiter.middleware.js';
+import { uploadDir } from './middlewares/upload.middleware.js';
 import { ApiError } from './utils/apiError.js';
 
 const app = express();
+
+// Trust reverse proxies (Render / Cloudflare) to ensure correct req.protocol (HTTPS)
+app.set('trust proxy', 1);
 
 // Security Middlewares
 app.use(helmet({
@@ -45,8 +49,11 @@ if (ENV.NODE_ENV === 'development') {
 // General Rate Limiting
 app.use('/api', generalLimiter);
 
-// Serve static uploads folder
-app.use('/uploads', express.static(path.resolve('uploads')));
+// Serve static uploads folder with permissive CORS headers
+app.use('/uploads', express.static(uploadDir));
+if (uploadDir !== path.resolve('uploads') && fs.existsSync(path.resolve('uploads'))) {
+  app.use('/uploads', express.static(path.resolve('uploads')));
+}
 
 // Mount API routes
 app.use('/api', routes);

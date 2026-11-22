@@ -158,7 +158,50 @@ export const useChatStore = create((set, get) => ({
     set((state) => ({
       messages: state.messages.map((m) =>
         m._id === messageId ? { ...m, status } : m
+      ),
+      conversations: state.conversations.map((c) =>
+        c.lastMessage?._id === messageId
+          ? { ...c, lastMessage: { ...c.lastMessage, status } }
+          : c
       )
+    }));
+  },
+
+  markMessagesAsRead: (messageIds) => {
+    if (!Array.isArray(messageIds) || messageIds.length === 0) return;
+    const idSet = new Set(messageIds.map((id) => id.toString()));
+    set((state) => ({
+      messages: state.messages.map((m) =>
+        idSet.has(m._id?.toString()) ? { ...m, status: 'read' } : m
+      ),
+      conversations: state.conversations.map((c) =>
+        c.lastMessage && idSet.has(c.lastMessage._id?.toString())
+          ? { ...c, lastMessage: { ...c.lastMessage, status: 'read' } }
+          : c
+      )
+    }));
+  },
+
+  updateUserAvatar: (userId, avatar) => {
+    set((state) => ({
+      conversations: state.conversations.map((c) => {
+        if (c.type === 'direct') {
+          const updatedParticipants = c.participants?.map((p) =>
+            p._id?.toString() === userId.toString() ? { ...p, avatar } : p
+          );
+          return { ...c, participants: updatedParticipants };
+        }
+        return c;
+      }),
+      activeConversation:
+        state.activeConversation && state.activeConversation.type === 'direct'
+          ? {
+              ...state.activeConversation,
+              participants: state.activeConversation.participants?.map((p) =>
+                p._id?.toString() === userId.toString() ? { ...p, avatar } : p
+              )
+            }
+          : state.activeConversation
     }));
   },
 

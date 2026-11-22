@@ -7,6 +7,7 @@ import { logger } from './utils/logger.js';
 
 const httpServer = http.createServer(app);
 const io = initSocketServer(httpServer);
+app.set('io', io);
 
 const startServer = async () => {
   try {

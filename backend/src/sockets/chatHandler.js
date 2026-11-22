@@ -143,22 +143,35 @@ export const registerChatHandlers = (io, socket) => {
     }
   });
 
-  // Mark messages as delivered
-  socket.on('message:delivered', async ({ messageId, conversationId }) => {
+  // Mark messages as delivered (Double Grey Ticks)
+  socket.on('message:delivered', async ({ messageId, conversationId, senderId }) => {
     try {
+      const userObjectId = new mongoose.Types.ObjectId(userId);
       await Message.updateOne(
-        { _id: messageId, 'deliveryStatus.user': userId },
+        {
+          _id: messageId,
+          status: 'sent'
+        },
         {
           $set: {
-            'deliveryStatus.$.status': 'delivered',
-            'deliveryStatus.$.updatedAt': new Date(),
-            status: 'delivered'
+            status: 'delivered',
+            'deliveryStatus.$[elem].status': 'delivered',
+            'deliveryStatus.$[elem].updatedAt': new Date()
           }
+        },
+        {
+          arrayFilters: [{ 'elem.user': userObjectId }]
         }
       );
 
-      io.to(`conv_${conversationId}`).emit('message:status_updated', {
+      const targetRooms = [`conv_${conversationId}`];
+      if (senderId) {
+        targetRooms.push(`user_${senderId.toString()}`);
+      }
+
+      io.to(targetRooms).emit('message:status_updated', {
         messageId,
+        conversationId,
         status: 'delivered',
         userId
       });
@@ -167,23 +180,40 @@ export const registerChatHandlers = (io, socket) => {
     }
   });
 
-  // Mark messages as read
+  // Mark messages as read (Double Blue Ticks)
   socket.on('message:read', async ({ conversationId, messageIds }) => {
     try {
       if (messageIds && messageIds.length > 0) {
+        const userObjectId = new mongoose.Types.ObjectId(userId);
         await Message.updateMany(
           {
             _id: { $in: messageIds },
-            'deliveryStatus.user': userId
+            sender: { $ne: userObjectId }
           },
           {
             $set: {
-              'deliveryStatus.$.status': 'read',
-              'deliveryStatus.$.updatedAt': new Date(),
-              status: 'read'
+              status: 'read',
+              'deliveryStatus.$[elem].status': 'read',
+              'deliveryStatus.$[elem].updatedAt': new Date()
             }
+          },
+          {
+            arrayFilters: [{ 'elem.user': userObjectId }]
           }
         );
+
+        const conversation = await Conversation.findById(conversationId).select('participants').lean();
+        const targetRooms = [`conv_${conversationId}`];
+        if (conversation) {
+          conversation.participants.forEach((p) => targetRooms.push(`user_${p.toString()}`));
+        }
+
+        io.to(targetRooms).emit('message:read_receipt', {
+          conversationId,
+          readBy: userId,
+          messageIds,
+          readAt: new Date()
+        });
       }
 
       // Reset unread count for user
@@ -191,14 +221,6 @@ export const registerChatHandlers = (io, socket) => {
         { _id: conversationId, 'unreadCounts.user': userId },
         { $set: { 'unreadCounts.$.count': 0 } }
       );
-
-      // Emit read receipt to conversation room
-      io.to(`conv_${conversationId}`).emit('message:read_receipt', {
-        conversationId,
-        readBy: userId,
-        messageIds,
-        readAt: new Date()
-      });
     } catch (err) {
       logger.error('Error updating read status:', err.message);
     }

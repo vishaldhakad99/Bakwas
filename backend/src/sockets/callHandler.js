@@ -13,14 +13,21 @@ export const registerCallHandlers = (io, socket) => {
     try {
       const { receiverId, callType, callId } = data;
 
-      // Check if receiver is busy
+      // Check if receiver is in an active call
       if (activeCalls.has(receiverId)) {
-        socket.emit('call:busy', { receiverId, callId });
-        await Call.findByIdAndUpdate(callId, { status: 'busy', endReason: 'busy', endedAt: new Date() });
-        return;
+        const existingCallId = activeCalls.get(receiverId);
+        const existingCall = await Call.findById(existingCallId).lean();
+        if (existingCall && (existingCall.status === 'initiated' || existingCall.status === 'ringing' || existingCall.status === 'accepted')) {
+          socket.emit('call:busy', { receiverId, callId });
+          await Call.findByIdAndUpdate(callId, { status: 'busy', endReason: 'busy', endedAt: new Date() });
+          return;
+        } else {
+          activeCalls.delete(receiverId);
+        }
       }
 
       activeCalls.set(userId, callId);
+      activeCalls.set(receiverId, callId);
 
       // Relay call request to receiver's private room
       io.to(`user_${receiverId}`).emit('call:incoming', {

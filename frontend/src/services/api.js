@@ -9,11 +9,16 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || defaultApiUrl;
 
 export const getMediaUrl = (url) => {
   if (!url || typeof url !== 'string') return '';
+  if (url.startsWith('blob:') || url.startsWith('data:')) {
+    return url;
+  }
+  // Prevent Mixed Content block: Force HTTPS for Render domain
+  if (url.startsWith('http://bakwas-fpfn.onrender.com')) {
+    return url.replace('http://', 'https://');
+  }
   if (
     url.startsWith('http://') ||
-    url.startsWith('https://') ||
-    url.startsWith('blob:') ||
-    url.startsWith('data:')
+    url.startsWith('https://')
   ) {
     return url;
   }

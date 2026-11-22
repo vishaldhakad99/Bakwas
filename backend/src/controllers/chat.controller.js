@@ -152,6 +152,51 @@ export const getMessages = async (req, res, next) => {
       .limit(parseInt(limit, 10))
       .lean();
 
+    // Mark unread messages sent by OTHER participants as 'read' (Blue Ticks)
+    const unreadMessages = messages.filter(
+      (m) => m.sender?._id?.toString() !== userId.toString() && m.status !== 'read'
+    );
+
+    if (unreadMessages.length > 0) {
+      const unreadIds = unreadMessages.map((m) => m._id);
+      const userObjectId = new mongoose.Types.ObjectId(userId);
+
+      await Message.updateMany(
+        { _id: { $in: unreadIds } },
+        {
+          $set: {
+            status: 'read',
+            'deliveryStatus.$[elem].status': 'read',
+            'deliveryStatus.$[elem].updatedAt': new Date()
+          }
+        },
+        {
+          arrayFilters: [{ 'elem.user': userObjectId }]
+        }
+      );
+
+      // Update status in the response payload
+      unreadIds.forEach((id) => {
+        const found = messages.find((m) => m._id.toString() === id.toString());
+        if (found) found.status = 'read';
+      });
+
+      // Broadcast read receipt in real time to conversation room and participants
+      const io = req.app.get('io');
+      if (io) {
+        const targetRooms = [
+          `conv_${conversationId}`,
+          ...conversation.participants.map((p) => `user_${p.toString()}`)
+        ];
+        io.to(targetRooms).emit('message:read_receipt', {
+          conversationId,
+          readBy: userId,
+          messageIds: unreadIds,
+          readAt: new Date()
+        });
+      }
+    }
+
     // Reset unread count for current user
     await Conversation.updateOne(
       { _id: conversationId, 'unreadCounts.user': userId },

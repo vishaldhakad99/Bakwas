@@ -21,6 +21,8 @@ import { useThemeStore } from './store/useThemeStore';
 
 import { initSocket, getSocket } from './services/socket';
 import { api } from './services/api';
+import { webrtc } from './services/webrtc';
+import { sound } from './services/sound';
 
 export function App() {
   const { isAuthenticated, accessToken, deviceId, user, logout } = useAuthStore();
@@ -30,6 +32,8 @@ export function App() {
     fetchConversations,
     addMessage,
     updateMessageStatus,
+    markMessagesAsRead,
+    updateUserAvatar,
     updateMessageReactions,
     setTyping,
     setPresence
@@ -88,6 +92,17 @@ export function App() {
     // Real-time Socket Event Listeners
     socket.on('message:receive', ({ message, tempId }) => {
       addMessage(message, true, tempId);
+
+      // WhatsApp Delivery Receipt: Auto-acknowledge delivery to the sender
+      const currentUser = JSON.parse(localStorage.getItem('bakwas_user') || 'null');
+      const isSelf = message.sender?._id === currentUser?._id || message.sender === currentUser?._id;
+      if (!isSelf && socket) {
+        socket.emit('message:delivered', {
+          messageId: message._id,
+          conversationId: message.conversationId,
+          senderId: message.sender?._id || message.sender
+        });
+      }
     });
 
     socket.on('conversation:updated', () => {
@@ -100,8 +115,12 @@ export function App() {
 
     socket.on('message:read_receipt', ({ messageIds }) => {
       if (Array.isArray(messageIds)) {
-        messageIds.forEach((id) => updateMessageStatus(id, 'read'));
+        markMessagesAsRead(messageIds);
       }
+    });
+
+    socket.on('user:avatar_updated', ({ userId, avatar }) => {
+      updateUserAvatar(userId, avatar);
     });
 
     socket.on('message:reaction_updated', ({ messageId, reactions }) => {
@@ -116,8 +135,72 @@ export function App() {
       setPresence(userId, isOnline);
     });
 
+    // Centralized WebRTC Call Signaling Listeners (prevents race conditions and dropped calls)
     socket.on('call:incoming', ({ callId, callType, caller }) => {
       setIncomingCall({ callId, callType, caller });
+    });
+
+    socket.on('call:accepted', async () => {
+      sound.stopRinging();
+      useCallStore.setState({ callState: 'connected' });
+      useCallStore.getState().startCallTimer();
+
+      try {
+        const { callId, peer } = useCallStore.getState();
+        if (peer && callId) {
+          webrtc.onRemoteStreamCallback = (stream) => {
+            useCallStore.setState({ remoteStream: stream });
+          };
+          const offer = await webrtc.createOffer(callId, peer._id);
+          socket.emit('call:offer', { to: peer._id, offer, callId });
+        }
+      } catch (err) {
+        console.error('Failed to create WebRTC offer:', err);
+      }
+    });
+
+    socket.on('call:offer', async ({ offer, from, callId }) => {
+      try {
+        const { peer } = useCallStore.getState();
+        const peerId = peer?._id || from;
+        webrtc.onRemoteStreamCallback = (stream) => {
+          useCallStore.setState({ remoteStream: stream });
+        };
+        const answer = await webrtc.handleOfferAndCreateAnswer(offer, callId, peerId);
+        socket.emit('call:answer', { to: peerId, answer, callId });
+      } catch (err) {
+        console.error('Failed to handle call offer:', err);
+      }
+    });
+
+    socket.on('call:answer', async ({ answer }) => {
+      try {
+        await webrtc.handleAnswer(answer);
+      } catch (err) {
+        console.error('Failed to handle call answer:', err);
+      }
+    });
+
+    socket.on('call:ice-candidate', async ({ candidate }) => {
+      await webrtc.addIceCandidate(candidate);
+    });
+
+    socket.on('call:rejected', () => {
+      sound.stopRinging();
+      alert('Call was declined');
+      useCallStore.getState().endCall('declined');
+    });
+
+    socket.on('call:ended', ({ reason }) => {
+      sound.stopRinging();
+      useCallStore.getState().endCall(reason || 'completed');
+    });
+
+    socket.on('call:busy', () => {
+      sound.stopRinging();
+      const { peer } = useCallStore.getState();
+      alert(`${peer?.fullName || 'User'} is currently on another call`);
+      useCallStore.getState().endCall('busy');
     });
 
     return () => {
@@ -125,10 +208,18 @@ export function App() {
       socket.off('conversation:updated');
       socket.off('message:status_updated');
       socket.off('message:read_receipt');
+      socket.off('user:avatar_updated');
       socket.off('message:reaction_updated');
       socket.off('typing:status');
       socket.off('user:presence');
       socket.off('call:incoming');
+      socket.off('call:accepted');
+      socket.off('call:offer');
+      socket.off('call:answer');
+      socket.off('call:ice-candidate');
+      socket.off('call:rejected');
+      socket.off('call:ended');
+      socket.off('call:busy');
     };
   }, [isAuthenticated, accessToken]);
 

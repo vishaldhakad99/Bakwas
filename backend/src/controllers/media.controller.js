@@ -11,7 +11,9 @@ export const uploadMedia = async (req, res, next) => {
     }
 
     const file = req.file;
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https' || req.protocol === 'https';
+    const protocol = isHttps ? 'https' : 'http';
+    const baseUrl = `${protocol}://${req.get('host')}`;
     let url = `${baseUrl}/uploads/${file.filename}`;
     let publicId = file.filename;
 
@@ -57,7 +59,7 @@ export const uploadMedia = async (req, res, next) => {
 
 export const getIceServersConfig = async (req, res, next) => {
   try {
-    const servers = getIceServers();
+    const servers = await getIceServers();
     return res.status(200).json(new ApiResponse(200, { iceServers: servers }));
   } catch (error) {
     next(error);

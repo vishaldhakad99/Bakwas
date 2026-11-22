@@ -5,7 +5,7 @@ import os from 'os';
 import { ApiError } from '../utils/apiError.js';
 import { logger } from '../utils/logger.js';
 
-let uploadDir = path.resolve('uploads');
+export let uploadDir = path.resolve('uploads');
 try {
   if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });

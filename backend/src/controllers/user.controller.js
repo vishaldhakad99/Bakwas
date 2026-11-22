@@ -55,7 +55,9 @@ export const updateAvatar = async (req, res, next) => {
     }
 
     const user = req.user;
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https' || req.protocol === 'https';
+    const protocol = isHttps ? 'https' : 'http';
+    const baseUrl = `${protocol}://${req.get('host')}`;
     let avatarUrl = `${baseUrl}/uploads/${req.file.filename}`;
     let publicId = req.file.filename;
 
@@ -82,6 +84,14 @@ export const updateAvatar = async (req, res, next) => {
     };
     await user.save();
 
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('user:avatar_updated', {
+        userId: user._id.toString(),
+        avatar: user.avatar
+      });
+    }
+
     return res.status(200).json(
       new ApiResponse(200, user.avatar, 'Profile picture updated successfully')
     );
@@ -95,6 +105,14 @@ export const removeAvatar = async (req, res, next) => {
     const user = req.user;
     user.avatar = { url: '', publicId: '' };
     await user.save();
+
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('user:avatar_updated', {
+        userId: user._id.toString(),
+        avatar: user.avatar
+      });
+    }
 
     return res.status(200).json(
       new ApiResponse(200, null, 'Profile picture removed successfully')

@@ -18,10 +18,16 @@ export const ProfileModal = ({ isOpen, onClose }) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Avatar image size must be under 5MB');
+      return;
+    }
+
     const formData = new FormData();
     formData.append('avatar', file);
 
     try {
+      setIsSaving(true);
       const res = await api.post('/users/avatar', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
@@ -30,6 +36,9 @@ export const ProfileModal = ({ isOpen, onClose }) => {
       setTimeout(() => setMessage(''), 3000);
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to update avatar');
+    } finally {
+      setIsSaving(false);
+      e.target.value = '';
     }
   };
 
@@ -83,23 +92,30 @@ export const ProfileModal = ({ isOpen, onClose }) => {
         )}
 
         <form onSubmit={handleSaveProfile} className="space-y-4 pt-4">
-          {/* Avatar with upload overlay */}
+          {/* Avatar with WhatsApp-style camera badge */}
           <div className="flex flex-col items-center justify-center mb-2">
-            <div className="relative group cursor-pointer">
+            <div className="relative">
               <Avatar src={user.avatar?.url} name={user.fullName} size="xl" />
-              <label className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white cursor-pointer">
-                <Camera className="w-6 h-6 mb-1" />
-                <span className="text-[10px]">Change</span>
+              <label
+                className="absolute bottom-0 right-0 p-2.5 rounded-full bg-bakwas-500 hover:bg-bakwas-600 text-slate-950 shadow-lg cursor-pointer active:scale-95 transition-transform flex items-center justify-center ring-2 ring-slate-900"
+                title="Change Profile Picture"
+              >
+                <Camera className="w-4 h-4 fill-current" />
                 <input
                   type="file"
                   accept="image/*"
                   onChange={handleAvatarChange}
                   className="hidden"
+                  disabled={isSaving}
                 />
               </label>
             </div>
 
-            {user.avatar?.url && (
+            {isSaving && (
+              <p className="mt-2 text-xs text-bakwas-400 animate-pulse">Uploading photo...</p>
+            )}
+
+            {user.avatar?.url && !isSaving && (
               <button
                 type="button"
                 onClick={handleRemoveAvatar}
